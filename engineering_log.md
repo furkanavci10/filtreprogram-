@@ -219,3 +219,237 @@
 - Expanded iOS documentation with exact Xcode setup steps, manual configuration items, simulator-versus-device guidance, and a concrete runtime validation checklist covering build, extension loading, sender/body availability, category-to-action mapping, App Group access, and offline/performance expectations.
 - Documented what cannot be trusted until real runtime validation, especially principal-class registration, actual `IdentityLookup` request contents, App Group behavior, and the user-visible effect of `REVIEW_SUSPICIOUS -> allow`.
 - Remaining blockers before the first usable prototype: creating the actual Xcode project/targets, assigning signing and bundle identifiers, enabling entitlements/App Groups in Xcode, and validating the full flow on a physical iPhone with the Apple Messages filtering runtime.
+
+## 2026-03-22 Step 30
+
+- Completed the Android strategy and feasibility pass without turning the product into a default SMS app design.
+- Added Android strategy, limitations, cross-platform-core, UX, and phased implementation documents, plus a lightweight `android/` placeholder directory.
+- Chose a conservative Android direction: organizer, classifier, and search assistant first; default-SMS-app behavior is explicitly deferred as an optional future path.
+- Documented the main Android constraint that broad SMS access on Play-distributed Android is policy-sensitive unless the app becomes the default handler or qualifies for a narrow exception path.
+- Preserved the cross-platform trust model: critical-message protection, explainable classification, and conservative suspicious handling remain central on Android.
+- Main remaining uncertainty: whether a strong Android inbox-organization experience can be delivered on Play-distributed devices without drifting into a default-SMS or policy-sensitive SMS-permission posture.
+
+## 2026-03-22 Step 31
+
+- Completed the Android ingestion and distribution decision pass with a stricter product boundary: the app should organize and classify only the SMS-like artifacts it is legitimately given, not act as the canonical owner of the device inbox.
+- Added dedicated Android documents for data modeling, ingestion options, distribution options, and policy risks, then realigned `plans_android.md` around the chosen model.
+- Evaluated multiple ingestion paths: manual share-in, paste/analyze flow, explicit local batch import from user-supplied material, notification-adjacent helper concepts, broad SMS-provider access, and the separate future default-SMS-app path.
+- Recommended a conservative primary Android ingestion model:
+  - primary: manual share-in from the user’s existing messaging app
+  - secondary: paste/analyze flow
+  - optional later enhancement: explicit user-initiated local archive import from user-supplied material
+- Recommended a conservative Android distribution model:
+  - primary surface: Important Messages Finder
+  - primary interaction: Categorized Search Assistant
+  - secondary surfaces: Suspicious and Promotional review views
+  - supporting surface: explanation-rich Analysis Workspace
+- Policy and trust risks were tightened explicitly:
+  - avoid broad `READ_SMS` dependence in a non-default app
+  - avoid notification-listener drift as a hidden primary pipeline
+  - avoid product copy that implies automatic Android-wide filtering or inbox ownership
+  - keep suspicious handling conservative and explainable
+- Product-vision protection was made explicit again: Android should reduce clutter and improve discoverability without forcing a new primary messaging workflow.
+- Biggest remaining Android uncertainty: whether user-initiated ingestion has enough convenience and repeat value to support a compelling Play-safe early product without sliding toward restricted SMS access.
+
+## 2026-03-22 Step 32
+
+- Completed the minimal Android shell architecture pass without building a full Android app and without drifting into default-SMS assumptions.
+- Added dedicated Android shell documents for architecture, data flow, screen flow, local storage, and privacy boundaries.
+- Defined the minimum Android-side layers as:
+  - ingestion adapters
+  - artifact intake coordinator
+  - classification bridge
+  - local artifact store
+  - search/distribution layer
+  - privacy/settings layer
+- Designed three ingestion flows explicitly:
+  - share-in from another app
+  - paste/analyze inside the app
+  - future explicit local artifact import
+- Kept storage behavior conservative:
+  - immediate analysis is allowed without forced saving
+  - saved artifacts remain local
+  - provenance is attached to each artifact
+  - deletion removes both artifact and classification snapshot
+- Defined the smallest useful Android surface set:
+  - Home
+  - Analyze Input
+  - Analysis Result
+  - Important Messages
+  - Search
+  - Review
+  - Message Detail
+  - Settings and Privacy
+- Preserved product-boundary guardrails:
+  - no inbox-thread-first shell
+  - no reply/send workflow
+  - no unread semantics implying inbox ownership
+  - no hidden ingestion assumptions
+- Realigned `plans_android.md` for the next implementation stages: minimal scaffold, ingestion entry points, local artifact storage, classification bridge, categorized search surfaces, privacy/settings, and validation/store-readiness.
+- Biggest remaining Android UX risk: user-initiated ingestion may still feel too high-friction unless the first organizer/search surfaces are immediately useful and explanation-rich after a message is shared or pasted.
+
+## 2026-03-22 Step 33
+
+- Added the first minimal Android implementation scaffold under `android/` without turning the product into a messaging client.
+- Introduced a lightweight Gradle/app structure with a single Android app module, manifest, and placeholder Compose activity.
+- Added minimal architecture-aligned Kotlin layers:
+  - `model` for message artifacts and classification snapshots
+  - `ingestion` for analyze request/result flow and artifact intake coordination
+  - `classification` for a placeholder bridge boundary
+  - `storage` for a local artifact store abstraction and in-memory implementation
+  - `search` for basic organizer/search repository logic
+  - `settings` for privacy summary placeholder state
+  - `appshell` for minimal placeholder screens
+- Added placeholder screens for:
+  - Home
+  - Analyze Input
+  - Analysis Result
+  - Important Messages
+  - Search
+  - Message Detail
+  - Settings and Privacy
+- Kept product boundaries explicit in code:
+  - no SMS permissions
+  - no default-SMS assumptions
+  - no inbox ownership
+  - only user-provided artifact flows
+- What remains placeholder:
+  - classification bridge still returns a stub result
+  - local storage is in-memory only
+  - navigation is screen-state based, not a production navigation stack
+  - no real share target or import flow is wired yet
+- Next implementation step should be:
+  - wire the real share-in and paste/analyze entry points
+  - replace the placeholder classification bridge with a real shared-core adapter
+  - move from in-memory storage to a real local artifact store
+
+## 2026-03-22 Step 34
+
+- Implemented the first real functional Android slice for the paste/analyze flow while preserving the non-default-SMS product boundary.
+- Replaced the purely in-memory app flow with a lightweight Room-backed local artifact store:
+  - added artifact and classification entities
+  - added DAO and Room database
+  - added `RoomLocalArtifactStore`
+  - added `AppContainer` to provide a single local store, coordinator, bridge, and search repository
+- Made the paste/analyze flow end-to-end inside the Android shell:
+  - user enters sender and message body
+  - `ArtifactIntakeCoordinator` validates input
+  - placeholder `ClassificationBridge` returns a classification snapshot
+  - analyzed artifact is persisted immediately
+  - Analysis Result, Home, Important, Search, and Detail all read from the same local store
+- Kept the architecture conservative:
+  - no SMS permissions
+  - no share target yet
+  - no inbox ownership assumptions
+  - only user-provided artifacts are analyzed and stored
+- Added lightweight JVM-side tests for:
+  - analyze-and-persist behavior
+  - validation failure behavior
+  - search behavior
+  - important/suspicious bucket behavior
+- Storage decision:
+  - chose Room as the first persistent local store because it keeps artifact/snapshot relationships explicit, local-first, and easy to replace later with richer persistence patterns
+  - allowed main-thread queries temporarily to keep this first slice minimal; this should be removed once view models and async loading are added
+- What remains placeholder:
+  - classification bridge still uses stub output and is not wired to the shared classifier core
+  - navigation is still simple screen-state switching
+  - no share-in flow is wired yet
+  - no import flow is wired yet
+- Next recommended Android step:
+  - replace the placeholder classification bridge with a real shared-core adapter
+  - then add a real share-in entry point so the organizer can ingest message artifacts from outside the app without changing the non-default-SMS posture
+
+## 2026-03-22 Step 35
+
+- Completed the Android classification-adapter strategy pass before adding share target integration.
+- Evaluated realistic adapter paths:
+  - direct reuse of the current Swift core on Android was rejected as unrealistic for this stage
+  - a fragile “pretend-shared” shortcut was rejected because it would hide real platform differences
+  - a stable Android-native evaluator aligned to the shared contract was chosen as the safest near-term path
+- Chosen path:
+  - keep the Android `ClassificationBridge` boundary stable
+  - introduce Android-native classification contract types for category and confidence
+  - implement a deterministic heuristic bridge that mirrors the trust-first cross-platform worldview
+  - keep the output contract compatible with existing Android storage and UI layers
+- Implemented `HeuristicClassificationBridge` as the first realistic non-placeholder Android classifier layer.
+- Preserved cross-platform alignment through:
+  - the same category model
+  - the same important-vs-junk worldview
+  - trust-first critical protection
+  - explanation-oriented output
+  - conservative review routing for mixed safe/risky messages
+- Updated the Android app container to use the heuristic bridge instead of the stub bridge.
+- Added contract-level tests for:
+  - critical bank/OTP behavior
+  - transactional cargo behavior
+  - clear bahis spam behavior
+  - fake-bank mixed-signal review behavior
+  - promotional behavior
+  - harmless normal-message behavior
+- Why this path is realistic:
+  - it gives Android a real local classifier now
+  - it avoids pretending Swift can be reused directly inside the Android runtime
+  - it leaves room for a future shared rule/data representation without breaking Android app boundaries
+- What remains before share target integration:
+  - classifier coverage is still much narrower than the full Swift trust core
+  - Android normalization/rule detail still needs to deepen if the app becomes more user-facing
+  - the placeholder bridge file can be retired once the real adapter path is fully stabilized
+
+## 2026-03-22 Step 36
+
+- Completed a focused Android classifier hardening pass before adding the first external share-in flow.
+- Strengthened the Android heuristic classifier in three areas:
+  - broader critical-safe wording for bank, OTP, security, payment, and spend alerts
+  - broader transactional wording for cargo, billing, telecom, and appointment reminders
+  - stronger risk detection for bahis/casino/freebet spam, fake cargo payment scams, fake bank credential phishing, and mixed safe-looking phishing conflicts
+- Improved Android-side normalization conservatively:
+  - Turkish casing and ASCII folding are now handled correctly
+  - lightweight obfuscation handling was added for core spam terms and CTA patterns such as `b@his`, `fr33bet`, and `linke tiklayin`
+  - normalization remains intentionally modest to avoid over-normalization and false positives
+- Preserved the trust-first contract:
+  - critical-looking messages do not go directly to spam under mixed-signal conditions
+  - mixed safe+risky bank and cargo messages tend toward `REVIEW_SUSPICIOUS`
+  - clearly malicious weak-safe bahis/phishing examples can still reach `FILTER_SPAM`
+- Added focused Android classifier tests for:
+  - critical protection
+  - transactional routing
+  - fake bank and fake cargo mixed-signal review behavior
+  - clear bahis/phishing spam
+  - promotional versus spam distinction
+- What still differs from the Swift core:
+  - Android normalization is much lighter
+  - Android rule coverage is narrower and not yet layered as deeply as the Swift trust core
+  - explanation generation is simpler and contract-oriented rather than policy-complete
+- Why share target is safer after this pass:
+  - the first externally ingested messages are less likely to misroute obvious critical wording
+  - obvious gambling/phishing content is more likely to land in the intended suspicious/spam buckets
+  - mixed safe-looking scams are more likely to be surfaced conservatively as review instead of being over-filtered or ignored
+
+## 2026-03-22 Step 37
+
+- Added the first Android share target flow for user-controlled text sharing without changing the non-default-SMS product boundary.
+- Updated the Android manifest so the app can receive `ACTION_SEND` payloads for `text/plain`.
+- Added a lightweight `SharedTextIntakeParser` and `SharedTextCandidate` so external shared text is parsed conservatively before entering the organizer shell.
+- Wired `MainActivity` to:
+  - inspect launch intents for shared text
+  - reopen safely on new share intents
+  - pass valid shared text into the existing app shell
+- Wired the app shell so shared text:
+  - pre-fills the Analyze Input screen
+  - is labeled as user-shared content
+  - still requires explicit user review and analyze action before classification and storage
+- Preserved privacy and trust boundaries:
+  - no silent background ingestion
+  - no automatic inbox ownership
+  - no SMS permissions
+  - no forced analysis without user action
+- Added lightweight intake tests for:
+  - valid shared-text parsing
+  - blank payload rejection
+  - wrong-action rejection
+  - wrong-mime-type rejection
+- What still remains before the first Android prototype is really usable:
+  - the Android classifier is still a heuristic bridge, not a shared-rule implementation
+  - share payload parsing is body-first and does not reliably recover sender metadata
+  - navigation is still minimal screen-state navigation
+  - the app still needs real Android build/runtime validation for chooser/share behavior
