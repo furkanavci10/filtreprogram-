@@ -15,7 +15,8 @@ enum PromotionalRules {
             ) { context in
                 RulePatternMatcher.containsAny([
                     "kampanya", "indirim", "firsat", "hemen kazan",
-                    "ozel teklif", "ucretsiz kargo", "flash sale", "yeni uyelere"
+                    "ozel teklif", "ucretsiz kargo", "flash sale", "yeni uyelere",
+                    "bu haftaya ozel", "hediye ceki", "sepete ozel", "firsat sizi bekliyor"
                 ], in: context.normalized)
             },
             RuleDefinition(
@@ -29,7 +30,8 @@ enum PromotionalRules {
             ) { context in
                 RulePatternMatcher.containsAny([
                     "kampanya basladi", "sizi bekliyor", "hediye tanimlandi",
-                    "ozel firsat", "bu aya ozel", "firsati kacirma", "hemen kazan"
+                    "ozel firsat", "bu aya ozel", "firsati kacirma", "hemen kazan",
+                    "alisverise ozel", "sepete indirim", "hediye cekleri"
                 ], in: context.normalized)
             }
         ]

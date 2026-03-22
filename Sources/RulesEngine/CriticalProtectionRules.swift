@@ -26,8 +26,10 @@ enum CriticalProtectionRules {
                 explanationHint: "Detected OTP or verification wording variant; protected as critical."
             ) { context in
                 RulePatternMatcher.containsAny([
-                    "dogrulama", "aktivasyon kodu", "tek kullanımlik kod", "tek kullanimlik kod",
-                    "guvenlik kodu", "islem onay kodu", "hesap onay kodu", "sifre dogrulama"
+                    "dogrulama", "aktivasyon kodu", "tek kullanimlik kod", "tek kullanimlik kod",
+                    "guvenlik kodu", "islem onay kodu", "hesap onay kodu", "sifre dogrulama",
+                    "hesap dogrulama kodu", "mobil onay kodu", "aktivasyon sifresi",
+                    "dogrulama sifresi", "onay sifresi", "guvenlik sifresi"
                 ], in: context.normalized)
                     && RulePatternMatcher.matchesRegex("\\d{4,8}", in: context.normalized)
             },
@@ -45,9 +47,13 @@ enum CriticalProtectionRules {
                     "onay kodu",
                     "tek kullanimlik sifre",
                     "bu kodu kimseyle paylasmayin",
+                    "kimseyle paylasmayin",
                     "sifre yenileme",
                     "3d secure",
-                    "giris kodu"
+                    "giris kodu",
+                    "dogrulama icin kod",
+                    "hesap onayi",
+                    "guvenlik nedeniyle"
                 ], in: context.normalized)
             },
             RuleDefinition(
@@ -62,7 +68,9 @@ enum CriticalProtectionRules {
                 RulePatternMatcher.containsAny([
                     "girisiniz onaylandi", "oturum acma kodu", "yeni cihaz",
                     "cihaz tanimlama", "hesabiniza giris yapildi", "internet subesi giris",
-                    "mobil giris", "guvenlik uyarisi"
+                    "mobil giris", "guvenlik uyarisi", "hesabiniz icin giris kodu",
+                    "cihaz eslestirme", "mobil bankacilik girisiniz", "yeni cihaz onayi",
+                    "hesabiniza erisim", "guvenli giris"
                 ], in: context.normalized)
             },
             RuleDefinition(
@@ -77,12 +85,14 @@ enum CriticalProtectionRules {
                 let hasBankTerm = RulePatternMatcher.containsAny([
                     "akbank", "garanti", "ziraat", "is bankasi", "isbank", "vakifbank",
                     "yapi kredi", "teb", "enpara", "halkbank", "qnb", "finansbank",
-                    "kuveyt turk", "albaraka", "papara", "kartinizla", "hesabiniza"
+                    "kuveyt turk", "albaraka", "papara", "paycell", "denizbank", "odeabank",
+                    "garanti bbva", "kartinizla", "hesabiniza", "kredi kartinizla", "sanal kartinizla"
                 ], in: context.normalized)
                 let hasAction = RulePatternMatcher.containsAny([
                     "harcama", "odeme", "isleminiz onaylandi", "islem gerceklesti",
                     "supheli islem", "hesabiniza giris", "mobil bankacilik", "para girisi",
-                    "fast isleminiz", "havale isleminiz", "eft isleminiz", "odemeniz alinmistir"
+                    "fast isleminiz", "havale isleminiz", "eft isleminiz", "odemeniz alinmistir",
+                    "para transferiniz", "islem basariyla tamamlandi", "tutarinda odeme", "guvenlik nedeniyle"
                 ], in: context.normalized)
                 return hasBankTerm && hasAction
             },
@@ -97,6 +107,7 @@ enum CriticalProtectionRules {
             ) { context in
                 RulePatternMatcher.matchesRegex("(kartinizla|kartiniz)\\s+.*(tl|try|odeme|harcama)", in: context.normalized)
                     || RulePatternMatcher.matchesRegex("\\d+[\\.,]?\\d*\\s*(tl|try).*(harcama|odeme|islem)", in: context.normalized)
+                    || RulePatternMatcher.matchesRegex("(kredi kartinizla|sanal kartinizla)\\s+.*(harcama|odeme)", in: context.normalized)
             },
             RuleDefinition(
                 id: "critical.payment_confirmation_variant",
@@ -110,7 +121,8 @@ enum CriticalProtectionRules {
                 RulePatternMatcher.containsAny([
                     "odemeniz alindi", "odemeniz alinmistir", "isleminiz tamamlandi",
                     "isleminiz basariyla tamamlandi", "havale isleminiz tamamlandi",
-                    "eft isleminiz tamamlandi", "fast isleminiz tamamlandi"
+                    "eft isleminiz tamamlandi", "fast isleminiz tamamlandi",
+                    "mobil odeme isleminiz", "para transferiniz tamamlandi", "odeme talebiniz onaylandi"
                 ], in: context.normalized)
             },
             RuleDefinition(
@@ -129,7 +141,11 @@ enum CriticalProtectionRules {
                     "hesabiniz icin dogrulama",
                     "yeni cihaz tanimlama",
                     "parola",
-                    "sanal kart"
+                    "sanal kart",
+                    "supheli kart islemi",
+                    "supheli giris",
+                    "guvenlik nedeniyle hesabiniz",
+                    "bilginiz disinda"
                 ], in: context.normalized)
             }
         ]

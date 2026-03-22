@@ -8,7 +8,7 @@ final class SMSClassifierTests: XCTestCase {
     private let normalizer = NormalizationEngine()
 
     func testNormalizationFixtures() {
-        XCTAssertGreaterThanOrEqual(ClassificationFixtures.normalization.count, 35)
+        XCTAssertGreaterThanOrEqual(ClassificationFixtures.normalization.count, 55)
 
         for fixture in ClassificationFixtures.normalization {
             let normalized = normalizer.normalize(.init(body: fixture.input))
@@ -80,8 +80,112 @@ final class SMSClassifierTests: XCTestCase {
         XCTAssertTrue(normalized.tokens.contains("islem"))
     }
 
+    func testNormalizationCapturesRepeatedNoiseFreebet() {
+        let samples = ["freeeeebet", "fr3e-bet", "fr33bet", "bonuuuus freeeeebet"]
+
+        for sample in samples {
+            let normalized = normalizer.normalize(.init(body: sample))
+            XCTAssertTrue(
+                normalized.aggressiveCompactText.contains("freebet"),
+                "Expected freebet normalization for \(sample), got \(normalized)"
+            )
+        }
+    }
+
+    func testNormalizationHandlesInvisibleCharacterTricks() {
+        let samples = [
+            "linke\u{200F}tiklayin",
+            "lin\u{202E}ke tik\u{202C}layin",
+            "kar\u{2060}go\u{2060}nuz beklemede",
+            "onay\u{2060}kodu 551122"
+        ]
+
+        for sample in samples {
+            let normalized = normalizer.normalize(.init(body: sample))
+            XCTAssertFalse(normalized.normalizedText.contains("\u{200F}"))
+            XCTAssertFalse(normalized.normalizedText.contains("\u{202E}"))
+            XCTAssertFalse(normalized.normalizedText.contains("\u{2060}"))
+        }
+
+        let phishing = normalizer.normalize(.init(body: "linke\u{200F}tiklayin"))
+        XCTAssertTrue(phishing.aggressiveText.contains("linke tiklayin") || phishing.aggressiveCompactText.contains("linketiklayin"))
+    }
+
+    func testNormalizationPreservesReadableViewsForAuditability() {
+        let normalized = normalizer.normalize(.init(body: "Akbank do\u{11F}rulama kodunuz 551122, bu kodu kimseyle payla\u{15F}may\u{131}n"))
+
+        XCTAssertFalse(normalized.normalizedText.isEmpty)
+        XCTAssertFalse(normalized.compactText.isEmpty)
+        XCTAssertFalse(normalized.aggressiveText.isEmpty)
+        XCTAssertFalse(normalized.aggressiveCompactText.isEmpty)
+        XCTAssertTrue(normalized.normalizedText.contains("dogrulama kodunuz"))
+        XCTAssertTrue(normalized.normalizedText.contains("bu kodu kimseyle paylasmayin"))
+        XCTAssertTrue(normalized.tokens.contains("dogrulama"))
+        XCTAssertTrue(normalized.tokens.contains("kodunuz"))
+    }
+
+    func testNormalizationDoesNotMergeOrdinarySpacedWords() {
+        let normalized = normalizer.normalize(.init(body: "bu a ra da sana yaziyorum"))
+
+        XCTAssertTrue(normalized.normalizedText.contains("bu a ra da"))
+        XCTAssertFalse(normalized.aggressiveCompactText.contains("burada"))
+    }
+
+    func testNormalizationDoesNotCollapseNormalTurkishElongation() {
+        let normalized = normalizer.normalize(.init(body: "cooook tesekkur ederim"))
+
+        XCTAssertTrue(normalized.normalizedText.contains("cooook"))
+        XCTAssertTrue(normalized.aggressiveText.contains("cooook"))
+        XCTAssertFalse(normalized.aggressiveText.contains("cok"))
+    }
+
+    func testNormalizationDoesNotCorruptNearMissWords() {
+        let normalized = normalizer.normalize(.init(body: "Linkedin tiklama oraniniz ve iddianame ozeti hazir."))
+
+        XCTAssertTrue(normalized.normalizedText.contains("linkedin"))
+        XCTAssertTrue(normalized.normalizedText.contains("tiklama"))
+        XCTAssertTrue(normalized.normalizedText.contains("iddianame"))
+        XCTAssertFalse(normalized.aggressiveText.contains("linke tiklayin"))
+        XCTAssertFalse(normalized.aggressiveCompactText.contains("iddaa"))
+    }
+
+    func testNormalizationDoesNotForcePartialWordSpamMatches() {
+        let normalized = normalizer.normalize(.init(body: "Bahisci degilim, sadece bahisciler hakkinda haber okudum."))
+
+        XCTAssertTrue(normalized.normalizedText.contains("bahisci"))
+        XCTAssertTrue(normalized.normalizedText.contains("bahisciler"))
+        XCTAssertFalse(normalized.aggressiveText.split(separator: " ").contains("bahis"))
+    }
+
+    func testNormalizationKeepsHarmlessPunctuationReadable() {
+        let normalized = normalizer.normalize(.init(body: "Merhaba... nasilsin? Bugun, saat 18:30'da goruselim."))
+
+        XCTAssertTrue(normalized.normalizedText.contains("merhaba"))
+        XCTAssertTrue(normalized.normalizedText.contains("nasilsin"))
+        XCTAssertTrue(normalized.normalizedText.contains("bugun saat 18 30"))
+        XCTAssertFalse(normalized.aggressiveCompactText.contains("bahis"))
+        XCTAssertFalse(normalized.aggressiveCompactText.contains("iddaa"))
+    }
+
+    func testNormalizationPreservesNormalTelecomCampaignLikeWording() {
+        let normalized = normalizer.normalize(.init(body: "Tarifenize ek 5 GB tanimlandi, paket yenileme tarihiniz yarin."))
+
+        XCTAssertTrue(normalized.normalizedText.contains("tarifenize ek 5 gb tanimlandi"))
+        XCTAssertTrue(normalized.normalizedText.contains("paket yenileme tarihiniz yarin"))
+        XCTAssertFalse(normalized.aggressiveText.contains("freebet"))
+        XCTAssertFalse(normalized.aggressiveText.contains("bonus"))
+    }
+
+    func testNormalizationPreservesNormalBankOtpStructureWithoutSpamShift() {
+        let normalized = normalizer.normalize(.init(body: "Banka onay kodunuz: 551122. Bu kodu kimseyle paylasmayin!"))
+
+        XCTAssertTrue(normalized.normalizedText.contains("banka onay kodunuz 551122"))
+        XCTAssertTrue(normalized.normalizedText.contains("bu kodu kimseyle paylasmayin"))
+        XCTAssertFalse(normalized.aggressiveText.contains("linke tiklayin"))
+    }
+
     func testCriticalProtectionFixtures() {
-        XCTAssertGreaterThanOrEqual(ClassificationFixtures.critical.count, 40)
+        XCTAssertGreaterThanOrEqual(ClassificationFixtures.critical.count, 60)
         let classifier = SMSClassifier()
 
         for fixture in ClassificationFixtures.critical {
@@ -113,8 +217,33 @@ final class SMSClassifierTests: XCTestCase {
         XCTAssertEqual(result.category, .allowCritical)
     }
 
+    func testCriticalRuleCoversSuspiciousTransactionAndDeviceApprovalVariants() {
+        let classifier = SMSClassifier()
+        let transactionResult = classifier.classify(.init(
+            sender: "QNB",
+            body: "Supheli kart islemi algilandi. Mobil onay kodu 220044."
+        ))
+        let deviceResult = classifier.classify(.init(
+            sender: "Is Bankasi",
+            body: "Yeni cihaz tanimlandi. Onay kodunuz 774499."
+        ))
+
+        XCTAssertEqual(transactionResult.category, .allowCritical)
+        XCTAssertEqual(deviceResult.category, .allowCritical)
+    }
+
+    func testCriticalRuleCoversSmallBankSecurityVariants() {
+        let classifier = SMSClassifier()
+        let result = classifier.classify(.init(
+            sender: "Kuveyt Turk",
+            body: "Dijital giris kodunuz 773311."
+        ))
+
+        XCTAssertEqual(result.category, .allowCritical)
+    }
+
     func testTransactionalFixtures() {
-        XCTAssertGreaterThanOrEqual(ClassificationFixtures.transactional.count, 35)
+        XCTAssertGreaterThanOrEqual(ClassificationFixtures.transactional.count, 55)
         let classifier = SMSClassifier()
 
         for fixture in ClassificationFixtures.transactional {
@@ -142,6 +271,36 @@ final class SMSClassifierTests: XCTestCase {
         ))
 
         XCTAssertEqual(result.category, .allowTransactional)
+    }
+
+    func testTransactionalRulesCoverTelecomServiceAndEcommerceShipmentVariants() {
+        let classifier = SMSClassifier()
+        let telecomResult = classifier.classify(.init(
+            sender: "Superonline",
+            body: "Kurulum randevunuz yarin 10:00-12:00 arasindadir."
+        ))
+        let ecommerceResult = classifier.classify(.init(
+            sender: "Trendyol",
+            body: "Siparisiniz kargoya verildi, takip no uygulamadadir."
+        ))
+
+        XCTAssertEqual(telecomResult.category, .allowTransactional)
+        XCTAssertEqual(ecommerceResult.category, .allowTransactional)
+    }
+
+    func testTransactionalRulesCoverPrivateClinicAndUtilityPhrasing() {
+        let classifier = SMSClassifier()
+        let clinicResult = classifier.classify(.init(
+            sender: "DunyaGoz",
+            body: "Muayene hatirlatmasi: randevunuz yarin 09:40."
+        ))
+        let utilityResult = classifier.classify(.init(
+            sender: "IGDAS",
+            body: "Faturaniz olustu, son odeme tarihi 04.04.2026."
+        ))
+
+        XCTAssertEqual(clinicResult.category, .allowTransactional)
+        XCTAssertEqual(utilityResult.category, .allowTransactional)
     }
 
     func testHighSafeTransactionalMessageDoesNotBecomeAllowCriticalWithoutCriticalSignals() {
@@ -177,7 +336,7 @@ final class SMSClassifierTests: XCTestCase {
     }
 
     func testSpamAndPromotionalFixtures() {
-        XCTAssertGreaterThanOrEqual(ClassificationFixtures.spam.count, 45)
+        XCTAssertGreaterThanOrEqual(ClassificationFixtures.spam.count, 70)
 
         let defaultClassifier = SMSClassifier()
         let denylistClassifier = SMSClassifier(configuration: .init(denylistedSenders: ["spam sender"]))
@@ -211,8 +370,19 @@ final class SMSClassifierTests: XCTestCase {
         XCTAssertEqual(result.category, .filterPromotional)
     }
 
+    func testPromotionalRuleCoversGiftVoucherStyleRetailCopy() {
+        let classifier = SMSClassifier()
+        let result = classifier.classify(.init(
+            sender: "Shop",
+            body: "Sepete ozel firsatlar ve hediye cekleri sizi bekliyor."
+        ))
+
+        XCTAssertEqual(result.category, .filterPromotional)
+        XCTAssertNotEqual(result.category, .filterSpam)
+    }
+
     func testConflictAndPhishingFixtures() {
-        XCTAssertGreaterThanOrEqual(ClassificationFixtures.conflict.count, 35)
+        XCTAssertGreaterThanOrEqual(ClassificationFixtures.conflict.count, 55)
         let classifier = SMSClassifier()
 
         for fixture in ClassificationFixtures.conflict {
@@ -240,6 +410,16 @@ final class SMSClassifierTests: XCTestCase {
         ))
 
         XCTAssertEqual(result.category, .filterSpam)
+    }
+
+    func testSpamRuleCoversVipOddsAndJoinLanguage() {
+        let classifier = SMSClassifier()
+        let result = classifier.classify(.init(
+            body: "VIP odds active, register now ve bonusunu al."
+        ))
+
+        XCTAssertEqual(result.category, .filterSpam)
+        XCTAssertGreaterThan(result.riskScore, 0)
     }
 
     func testFakeCargoConflictRoutesToReview() {
@@ -280,6 +460,64 @@ final class SMSClassifierTests: XCTestCase {
 
         XCTAssertTrue([MessageClassificationCategory.reviewSuspicious, .filterSpam].contains(result.category))
         XCTAssertGreaterThan(result.riskScore, 0)
+    }
+
+    func testPhishingRuleCoversImpersonationUrgencyAndActionCombo() {
+        let classifier = SMSClassifier()
+        let result = classifier.classify(.init(
+            body: "PTT uyarisi: son sans, paketinizi almak icin bu baglantiyi acin ve odeme yapin."
+        ))
+
+        XCTAssertTrue([MessageClassificationCategory.reviewSuspicious, .filterSpam].contains(result.category))
+        XCTAssertGreaterThan(result.riskScore, 0)
+    }
+
+    func testSpoofedSenderNameWithSuspiciousActionDoesNotGetTrusted() {
+        let classifier = SMSClassifier()
+        let result = classifier.classify(.init(
+            sender: "Akbank Guvenlik",
+            body: "Onay kodunuz 551122. Hesabinizi acmak icin baglantiyi acin."
+        ))
+
+        XCTAssertEqual(result.category, .reviewSuspicious)
+    }
+
+    func testFakeBankAndCargoDomainsIncreaseRisk() {
+        let classifier = SMSClassifier()
+        let bankResult = classifier.classify(.init(
+            body: "Garanti mobil giris kodunuz 441199. garanti-guvenlik-merkez.live adresine gidin."
+        ))
+        let cargoResult = classifier.classify(.init(
+            body: "Takip no 884411. PTT gonderiniz icin pttodeme-merkez.cc uzerinden ucret odeyin."
+        ))
+
+        XCTAssertEqual(bankResult.category, .reviewSuspicious)
+        XCTAssertEqual(cargoResult.category, .reviewSuspicious)
+    }
+
+    func testUtilityBillingVsFakePaymentPhishingStaysSeparated() {
+        let classifier = SMSClassifier()
+        let safeResult = classifier.classify(.init(
+            sender: "IGDAS",
+            body: "Faturaniz olustu, son odeme tarihi 04.04.2026."
+        ))
+        let riskyResult = classifier.classify(.init(
+            sender: "IGDAS",
+            body: "Faturaniz olustu. Kesinti olmamasi icin linkten odeme yapin."
+        ))
+
+        XCTAssertEqual(safeResult.category, .allowTransactional)
+        XCTAssertEqual(riskyResult.category, .reviewSuspicious)
+    }
+
+    func testTrustedLookingSenderWithCredentialRequestRoutesToReview() {
+        let classifier = SMSClassifier()
+        let result = classifier.classify(.init(
+            sender: "BEDAS Destek",
+            body: "Ariza kaydiniz acildi. Kimlik dogrulama icin sifrenizi girin."
+        ))
+
+        XCTAssertEqual(result.category, .reviewSuspicious)
     }
 
     func testMixedSignalFakeBankStillRoutesToReview() {
@@ -387,6 +625,15 @@ final class SMSClassifierTests: XCTestCase {
         XCTAssertEqual(first.confidenceBand, second.confidenceBand)
     }
 
+    func testTriggeredSignalsAreReturnedInDeterministicOrder() {
+        let classifier = SMSClassifier()
+        let input = ClassificationInput(body: "Bahis, casino, freebet, deneme bonusu, tinyurl.com/abc")
+        let first = classifier.classify(input)
+        let second = classifier.classify(input)
+
+        XCTAssertEqual(first.triggeredSignals.map(\.id), second.triggeredSignals.map(\.id))
+    }
+
     func testCriticalExplanationIsConciseAndDeterministic() {
         let classifier = SMSClassifier()
         let result = classifier.classify(.init(body: "Dogrulama kodunuz 771204. Bu kodu kimseyle paylasmayin."))
@@ -421,6 +668,14 @@ final class SMSClassifierTests: XCTestCase {
         XCTAssertNotNil(result.confidenceBand)
         XCTAssertNotNil(result.category)
         XCTAssertNotNil(result.triggeredSignals)
+    }
+
+    func testNormalizedTextFallsBackForLowSignalInput() {
+        let classifier = SMSClassifier()
+        let result = classifier.classify(.init(body: "   "))
+
+        XCTAssertFalse(result.normalizedText.isEmpty)
+        XCTAssertFalse(result.explanation.isEmpty)
     }
 
     func testUserPreferenceRulesDoNotWeakenCriticalProtection() {

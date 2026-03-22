@@ -15,7 +15,8 @@ enum PhishingRiskRules {
             ) { context in
                 RulePatternMatcher.containsAny([
                     "linke tiklayin", "sifrenizi girin", "kart bilgisi", "iban giriniz",
-                    "adres onayi yapin", "guncelleyin", "dogrulayin", "odeme icin"
+                    "adres onayi yapin", "guncelleyin", "dogrulayin", "odeme icin",
+                    "kimlik dogrulama", "hesap dogrulamasi", "bu baglantiyi acin", "bilgilerinizi girin"
                 ], in: context.normalized)
             },
             RuleDefinition(
@@ -28,10 +29,12 @@ enum PhishingRiskRules {
                 explanationHint: "Detected fake cargo payment or fee request."
             ) { context in
                 let hasCargoContext = RulePatternMatcher.containsAny([
-                    "kargonuz", "paketiniz", "teslimat", "gonderiniz", "takip no", "ptt"
+                    "kargonuz", "paketiniz", "teslimat", "gonderiniz", "takip no", "ptt",
+                    "yeniden dagitim", "subede bekliyor"
                 ], in: context.normalized)
                 let hasPaymentTrap = RulePatternMatcher.containsAny([
-                    "odeme yapin", "ucret odemesi", "kart bilgisi", "teslim ucreti", "iade olmamasi icin"
+                    "odeme yapin", "ucret odemesi", "kart bilgisi", "teslim ucreti", "iade olmamasi icin",
+                    "odemeyi tamamlayin", "teslim icin", "yeniden gonderim icin odeme"
                 ], in: context.normalized)
                 return hasCargoContext && hasPaymentTrap
             },
@@ -46,12 +49,31 @@ enum PhishingRiskRules {
             ) { context in
                 let hasBankContext = RulePatternMatcher.containsAny([
                     "akbank", "garanti", "ziraat", "is bankasi", "vakifbank", "yapi kredi",
-                    "hesabiniz bloke", "hesabiniz kapanacak", "kartiniz kapatilacak"
+                    "hesabiniz bloke", "hesabiniz kapanacak", "kartiniz kapatilacak",
+                    "garanti bbva", "internet subesi", "mobil bankacilik"
                 ], in: context.normalized)
                 let hasCredentialAsk = RulePatternMatcher.containsAny([
-                    "sifrenizi girin", "hesabinizi dogrulayin", "guncelleyin", "linke tiklayin"
+                    "sifrenizi girin", "hesabinizi dogrulayin", "guncelleyin", "linke tiklayin",
+                    "kimlik dogrulama", "bilgilerinizi guncelleyin", "hesabinizi aktife almak"
                 ], in: context.normalized)
                 return hasBankContext && hasCredentialAsk
+            },
+            RuleDefinition(
+                id: "phishing.sender_impersonation_hint",
+                description: "Trusted-looking support or security sender wording combined with suspicious action prompts.",
+                ruleType: .phishingRisk,
+                severity: .high,
+                safeWeight: 0,
+                riskWeight: RuleWeights.phishingAmplifier,
+                explanationHint: "Detected sender impersonation or fake support wording."
+            ) { context in
+                let hasImpersonationHint = RulePatternMatcher.containsAny([
+                    "guvenlik", "destek", "support", "yardim masasi", "musteri hizmetleri"
+                ], in: context.normalized)
+                let hasSuspiciousAsk = RulePatternMatcher.containsAny([
+                    "sifrenizi girin", "odeme yapin", "kimlik dogrulama", "bu baglantiyi acin", "linke tiklayin"
+                ], in: context.normalized)
+                return hasImpersonationHint && hasSuspiciousAsk
             },
             RuleDefinition(
                 id: "phishing.suspicious_domain",
@@ -63,6 +85,7 @@ enum PhishingRiskRules {
                 explanationHint: "Detected suspicious link or fake domain pattern."
             ) { context in
                 RulePatternMatcher.matchesRegex("(bit\\.ly|tinyurl|t\\.co|\\.top|\\.click|\\.live|\\.cc|\\.net)", in: context.normalized)
+                    || RulePatternMatcher.matchesRegex("([a-z0-9-]*)(akbank|garanti|ziraat|ptt|aras|yurtici|mng)([a-z0-9-]*)(\\.top|\\.click|\\.live|\\.cc|\\.net)", in: context.normalized)
             },
             RuleDefinition(
                 id: "phishing.impersonation_combo",
@@ -74,13 +97,15 @@ enum PhishingRiskRules {
                 explanationHint: "Detected impersonation, urgency, and action-request combination."
             ) { context in
                 let hasImpersonation = RulePatternMatcher.containsAny([
-                    "musteri hizmetleri", "e devlet", "mhrs", "ptt", "banka", "cargo", "delivery"
+                    "musteri hizmetleri", "e devlet", "mhrs", "ptt", "banka", "cargo", "delivery",
+                    "trendyol", "amazon", "sgk", "internet subesi"
                 ], in: context.normalized)
                 let hasUrgency = RulePatternMatcher.containsAny([
-                    "hemen", "son sans", "aksi halde", "son uyari", "acil"
+                    "hemen", "son sans", "aksi halde", "son uyari", "acil", "iptal edilecek", "donduruldu"
                 ], in: context.normalized)
                 let hasAction = RulePatternMatcher.containsAny([
-                    "linke tiklayin", "guncelleyin", "dogrulayin", "odeme yapin", "sifrenizi girin"
+                    "linke tiklayin", "guncelleyin", "dogrulayin", "odeme yapin", "sifrenizi girin",
+                    "bu baglantiyi acin", "verify", "pay fee", "kart bilgisi girin"
                 ], in: context.normalized)
                 return hasImpersonation && hasUrgency && hasAction
             },
@@ -96,7 +121,8 @@ enum PhishingRiskRules {
                 RulePatternMatcher.containsAny([
                     "hesabiniz askiya alindi", "hesabiniz kapanacak", "odul kazandiniz",
                     "hediyeniz hazir", "icra dosyasi acildi", "devlet yardimi",
-                    "kargonuz beklemede", "bloke edildi", "kartiniz kapatilacak"
+                    "kargonuz beklemede", "bloke edildi", "kartiniz kapatilacak",
+                    "hesabiniz guvenlik nedeniyle donduruldu", "buyuk odul kazandiniz", "paketiniz iade olmamasi icin"
                 ], in: context.normalized)
             }
         ]

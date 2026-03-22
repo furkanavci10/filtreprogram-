@@ -22,7 +22,12 @@ public struct SMSClassifier: Sendable {
         let evaluation = ruleEngine.evaluate(input: input, configuration: configuration)
         let category = decisionEngine.decide(from: evaluation)
         let confidenceBand = decisionEngine.confidenceBand(for: category, evaluation: evaluation)
-        let explanation = explanationEngine.explanation(for: category, evaluation: evaluation)
+        let triggeredSignals = evaluation.triggeredSignals.sorted(by: Self.signalSort)
+        let explanation = explanationEngine.explanation(
+            for: category,
+            evaluation: evaluation,
+            triggeredSignals: triggeredSignals
+        )
         let normalizedText = evaluation.normalizedMessage.normalizedText.isEmpty
             ? evaluation.normalizedMessage.loweredText
             : evaluation.normalizedMessage.normalizedText
@@ -32,9 +37,33 @@ public struct SMSClassifier: Sendable {
             confidenceBand: confidenceBand,
             safeScore: evaluation.safeScore,
             riskScore: evaluation.riskScore,
-            triggeredSignals: evaluation.triggeredSignals,
+            triggeredSignals: triggeredSignals,
             explanation: explanation,
             normalizedText: normalizedText
         )
+    }
+
+    private static func signalSort(lhs: TriggeredSignal, rhs: TriggeredSignal) -> Bool {
+        let lhsSeverity = severityRank(lhs.severity)
+        let rhsSeverity = severityRank(rhs.severity)
+
+        if lhsSeverity != rhsSeverity {
+            return lhsSeverity > rhsSeverity
+        }
+
+        if lhs.ruleType != rhs.ruleType {
+            return lhs.ruleType.rawValue < rhs.ruleType.rawValue
+        }
+
+        return lhs.id < rhs.id
+    }
+
+    private static func severityRank(_ severity: RuleSeverity) -> Int {
+        switch severity {
+        case .critical: return 3
+        case .high: return 2
+        case .medium: return 1
+        case .low: return 0
+        }
     }
 }

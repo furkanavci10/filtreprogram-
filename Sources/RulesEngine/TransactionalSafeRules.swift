@@ -15,7 +15,8 @@ enum TransactionalSafeRules {
             ) { context in
                 RulePatternMatcher.containsAny([
                     "kargonuz", "takip no", "dagitima cikti", "dagitima cikarilmistir",
-                    "teslim edildi", "teslimat", "kurye", "paketiniz", "gonderiniz"
+                    "teslim edildi", "teslimat", "kurye", "paketiniz", "gonderiniz",
+                    "kargoya verildi", "dagitim listesine alindi", "teslim noktasina ulasti"
                 ], in: context.normalized)
             },
             RuleDefinition(
@@ -30,7 +31,8 @@ enum TransactionalSafeRules {
                 RulePatternMatcher.containsAny([
                     "subeye ulasmistir", "transfer merkezine ulasti", "adresinizde bulunamadiniz",
                     "teslimata cikmistir", "teslim kodunuz", "dagitim merkezinde",
-                    "gonderi takip", "kurye kapida", "teslim edilecektir"
+                    "gonderi takip", "kurye kapida", "teslim edilecektir", "subede teslim alinmayi bekliyor",
+                    "cikis subesinden ayrildi", "yeniden dagitim"
                 ], in: context.normalized)
             },
             RuleDefinition(
@@ -44,7 +46,8 @@ enum TransactionalSafeRules {
             ) { context in
                 RulePatternMatcher.containsAny([
                     "randevunuz", "muayene", "mhrs", "hastane", "provizyon",
-                    "rezervasyonunuz", "pnr"
+                    "rezervasyonunuz", "pnr", "poliklinik", "tetkik", "laboratuvar", "raporunuz hazirdir",
+                    "muayene hatirlatmasi", "kontrol randevunuz", "tetkik sonuclariniz", "dunyagoz", "liv hospital", "medipol"
                 ], in: context.normalized)
             },
             RuleDefinition(
@@ -58,7 +61,8 @@ enum TransactionalSafeRules {
             ) { context in
                 RulePatternMatcher.containsAny([
                     "siparisiniz", "iade talebiniz", "kuryeye verildi", "magaza teslimine hazirdir",
-                    "teslim edildi", "siparisiniz yola cikti", "hazirlaniyor", "e fatura olusturuldu"
+                    "teslim edildi", "siparisiniz yola cikti", "hazirlaniyor", "e fatura olusturuldu",
+                    "teslim noktasina ulasti", "e faturaniz olusturuldu", "siparisiniz restoranda hazirlaniyor"
                 ], in: context.normalized)
             },
             RuleDefinition(
@@ -72,7 +76,9 @@ enum TransactionalSafeRules {
             ) { context in
                 RulePatternMatcher.containsAny([
                     "faturaniz", "son odeme tarihi", "tarifeniz", "paketiniz",
-                    "ariza kaydiniz", "numara tasima", "modem kurulum", "e fatura"
+                    "ariza kaydiniz", "numara tasima", "modem kurulum", "e fatura",
+                    "faturaniz olustu", "paket yenileme", "kalan kullanim haklari",
+                    "kesinti bildirimi", "aboneliginize ait fatura", "igdas", "bedas", "aski"
                 ], in: context.normalized)
             },
             RuleDefinition(
@@ -86,7 +92,8 @@ enum TransactionalSafeRules {
             ) { context in
                 RulePatternMatcher.containsAny([
                     "ek paketiniz tanimlandi", "paketinizin suresi", "taahhut bitis tarihiniz",
-                    "ariza ekibimiz", "tarifenize ek", "faturaniz odendi", "geri arama talebiniz"
+                    "ariza ekibimiz", "tarifenize ek", "faturaniz odendi", "geri arama talebiniz",
+                    "kurulum randevunuz", "hizmetiniz aktif edildi", "paketiniz yarin yenilenecektir"
                 ], in: context.normalized)
             },
             RuleDefinition(
@@ -102,7 +109,9 @@ enum TransactionalSafeRules {
                     "turkiye gov tr",
                     "turkiye.gov.tr",
                     "yurticikargo.com",
-                    "amazon.com.tr"
+                    "amazon.com.tr",
+                    "aras.com.tr",
+                    "mhrs.gov.tr"
                 ], in: context.normalized)
             }
         ]

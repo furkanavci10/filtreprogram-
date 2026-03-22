@@ -14,8 +14,18 @@ public struct IdentityLookupAdapter {
     }
 
     public func classify(sender: String?, messageBody: String) -> (response: FilterClassificationResponse, action: ExtensionFilterAction) {
-        let response = service.classify(.init(sender: sender, messageBody: messageBody))
+        let outcome = classifyOutcome(sender: sender, messageBody: messageBody)
+        return (outcome.response, outcome.action)
+    }
+
+    public func classifyOutcome(sender: String?, messageBody: String) -> ExtensionClassificationOutcome {
+        let request = FilterClassificationRequest(sender: sender, messageBody: messageBody)
+        let response = service.classify(request)
         let action = mapper.action(for: response)
-        return (response, action)
+        return ExtensionClassificationOutcome(
+            request: request,
+            response: response,
+            action: action
+        )
     }
 }

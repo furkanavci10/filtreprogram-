@@ -1,5 +1,8 @@
 import Foundation
 import ClassificationCore
+#if canImport(IdentityLookup)
+import IdentityLookup
+#endif
 
 public enum ExtensionFilterAction: String, Codable, CaseIterable {
     case allow
@@ -17,4 +20,15 @@ public struct ExtensionClassificationMapper {
             return .junk
         }
     }
+
+#if canImport(IdentityLookup)
+    public func identityLookupFilterAction(for response: FilterClassificationResponse) -> ILMessageFilterAction {
+        switch action(for: response) {
+        case .allow:
+            return .allow
+        case .junk:
+            return .junk
+        }
+    }
+#endif
 }
