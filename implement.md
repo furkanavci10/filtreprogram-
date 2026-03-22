@@ -16,3 +16,8 @@ Planned follow-up after Milestone 1:
 - SMS Filter Extension shell
 - App group persistence
 - review UI and override settings
+
+Integration boundary now prepared:
+
+- `ClassificationCore` exposes request/response adapter types for future iOS extension usage
+- Apple-specific framework integration remains intentionally outside the core package

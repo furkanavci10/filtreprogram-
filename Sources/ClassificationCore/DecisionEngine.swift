@@ -5,10 +5,11 @@ import RulesEngine
 struct DecisionEngine {
     private let spamThreshold = 75
     private let veryHighRiskThreshold = 90
-    private let transactionalSafeThreshold = 40
-    private let weakSafeThreshold = 20
-    private let strongDominanceGap = 25
-    private let moderateDominanceGap = 12
+    private let transactionalSafeThreshold = 45
+    private let weakSafeThreshold = 18
+    private let strongDominanceGap = 24
+    private let moderateDominanceGap = 10
+    private let criticalClearSafetyGap = 18
 
     func decide(from evaluation: RuleEvaluation) -> MessageClassificationCategory {
         let safe = evaluation.safeScore
@@ -17,15 +18,15 @@ struct DecisionEngine {
         let scoreGap = abs(safe - risk)
 
         if evaluation.hasCriticalProtectionSignal {
-            if risk == 0 || risk <= safe / 3 {
+            if risk == 0 || (risk <= weakSafeThreshold && (safe - risk) >= criticalClearSafetyGap) {
                 return .allowCritical
             }
 
-            if risk >= moderateDominanceGap {
+            if risk > 0 {
                 return .reviewSuspicious
             }
 
-            return safe >= 90 ? .allowCritical : .reviewSuspicious
+            return .allowCritical
         }
 
         let canRoutePromotional = evaluation.hasPromotionalSignal
@@ -34,6 +35,7 @@ struct DecisionEngine {
             && !evaluation.hasCriticalProtectionSignal
             && !evaluation.hasTransactionalSignal
             && safe <= weakSafeThreshold
+            && risk < spamThreshold
 
         if canRoutePromotional {
             return .filterPromotional
@@ -55,6 +57,12 @@ struct DecisionEngine {
 
             if risk > safe {
                 if evaluation.hasSevereRiskSignal && safe <= weakSafeThreshold && scoreGap >= moderateDominanceGap {
+                    return .filterSpam
+                }
+
+                if (evaluation.hasSpamSignal || evaluation.hasPhishingSignal)
+                    && scoreGap >= strongDominanceGap
+                    && safe <= weakSafeThreshold {
                     return .filterSpam
                 }
 
@@ -96,15 +104,16 @@ struct DecisionEngine {
         case .allowCritical:
             return evaluation.hasCriticalProtectionSignal ? .high : .medium
         case .allowTransactional:
-            return distance >= 20 ? .high : .medium
+            return (evaluation.hasTransactionalSignal && evaluation.riskScore == 0) || distance >= strongDominanceGap ? .high : .medium
         case .allowNormal:
             return evaluation.triggeredSignals.isEmpty ? .medium : .low
         case .reviewSuspicious:
-            return distance >= 30 ? .medium : .low
+            return distance >= strongDominanceGap ? .medium : .low
         case .filterPromotional:
-            return distance >= 15 || evaluation.hasPromotionalSignal ? .medium : .low
+            return evaluation.hasPromotionalSignal && !evaluation.hasSpamSignal && !evaluation.hasPhishingSignal ? .medium : .low
         case .filterSpam:
-            return evaluation.hasSevereRiskSignal && distance >= 25 ? .high : .medium
+            return (evaluation.hasSevereRiskSignal || evaluation.riskScore >= veryHighRiskThreshold)
+                && distance >= strongDominanceGap ? .high : .medium
         }
     }
 }

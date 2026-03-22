@@ -19,6 +19,21 @@ enum TransactionalSafeRules {
                 ], in: context.normalized)
             },
             RuleDefinition(
+                id: "safe.cargo_extended",
+                description: "Extended cargo tracking and delivery states.",
+                ruleType: .transactionalSafe,
+                severity: .medium,
+                safeWeight: RuleWeights.transactional,
+                riskWeight: 0,
+                explanationHint: "Detected extended cargo tracking or delivery update wording."
+            ) { context in
+                RulePatternMatcher.containsAny([
+                    "subeye ulasmistir", "transfer merkezine ulasti", "adresinizde bulunamadiniz",
+                    "teslimata cikmistir", "teslim kodunuz", "dagitim merkezinde",
+                    "gonderi takip", "kurye kapida", "teslim edilecektir"
+                ], in: context.normalized)
+            },
+            RuleDefinition(
                 id: "safe.appointment",
                 description: "Healthcare, reservation, or official appointments.",
                 ruleType: .transactionalSafe,
@@ -33,6 +48,20 @@ enum TransactionalSafeRules {
                 ], in: context.normalized)
             },
             RuleDefinition(
+                id: "safe.order_and_delivery",
+                description: "E-commerce order, return, and fulfillment notices.",
+                ruleType: .transactionalSafe,
+                severity: .medium,
+                safeWeight: RuleWeights.transactional,
+                riskWeight: 0,
+                explanationHint: "Detected order, return, or e-commerce delivery wording."
+            ) { context in
+                RulePatternMatcher.containsAny([
+                    "siparisiniz", "iade talebiniz", "kuryeye verildi", "magaza teslimine hazirdir",
+                    "teslim edildi", "siparisiniz yola cikti", "hazirlaniyor", "e fatura olusturuldu"
+                ], in: context.normalized)
+            },
+            RuleDefinition(
                 id: "safe.billing",
                 description: "Invoice, telecom, or service notices.",
                 ruleType: .transactionalSafe,
@@ -44,6 +73,20 @@ enum TransactionalSafeRules {
                 RulePatternMatcher.containsAny([
                     "faturaniz", "son odeme tarihi", "tarifeniz", "paketiniz",
                     "ariza kaydiniz", "numara tasima", "modem kurulum", "e fatura"
+                ], in: context.normalized)
+            },
+            RuleDefinition(
+                id: "safe.telecom_extended",
+                description: "Telecom package, renewal, and service-visit notices.",
+                ruleType: .transactionalSafe,
+                severity: .medium,
+                safeWeight: RuleWeights.transactional,
+                riskWeight: 0,
+                explanationHint: "Detected telecom billing, package, or service wording."
+            ) { context in
+                RulePatternMatcher.containsAny([
+                    "ek paketiniz tanimlandi", "paketinizin suresi", "taahhut bitis tarihiniz",
+                    "ariza ekibimiz", "tarifenize ek", "faturaniz odendi", "geri arama talebiniz"
                 ], in: context.normalized)
             },
             RuleDefinition(

@@ -1,0 +1,33 @@
+[33md11330c[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m initial
+ Package.swift                                      |  37 [32m++[m
+ README.md                                          |  42 [32m++[m
+ Sources/ClassificationCore/DecisionEngine.swift    | 110 [32m++++++[m
+ Sources/ClassificationCore/ExplanationEngine.swift |  33 [32m++[m
+ Sources/ClassificationCore/SMSClassifier.swift     |  37 [32m++[m
+ Sources/Dataset/ClassificationFixtures.swift       | 128 [32m+++++++[m
+ Sources/MessageFilteringDomain/Models.swift        | 181 [32m+++++++++[m
+ Sources/RulesEngine/CriticalProtectionRules.swift  |  80 [32m++++[m
+ Sources/RulesEngine/NormalizationEngine.swift      |  62 [32m+++[m
+ Sources/RulesEngine/PhishingRiskRules.swift        |  49 [32m+++[m
+ Sources/RulesEngine/PromotionalRules.swift         |  23 [32m++[m
+ Sources/RulesEngine/RuleDefinition.swift           |  75 [32m++++[m
+ Sources/RulesEngine/RuleEngine.swift               |  86 [32m+++++[m
+ Sources/RulesEngine/RuleWeights.swift              |  21 [32m+[m
+ Sources/RulesEngine/SpamRiskRules.swift            |  52 [32m+++[m
+ Sources/RulesEngine/TransactionalSafeRules.swift   |  67 [32m++++[m
+ Sources/RulesEngine/UserPreferenceRules.swift      |  65 [32m++++[m
+ .../SMSClassifierTests.swift                       | 223 [32m+++++++++++[m
+ docs/CLASSIFICATION_POLICY.md                      | 422 [32m+++++++++++++++++++++[m
+ docs/DATASET_TR.md                                 | 220 [32m+++++++++++[m
+ docs/DECISIONS.md                                  |  51 [32m+++[m
+ docs/EDGE_CASES_TR.md                              | 155 [32m++++++++[m
+ docs/PRD.md                                        | 270 [32m+++++++++++++[m
+ docs/SYSTEM_DESIGN.md                              | 203 [32m++++++++++[m
+ docs/TEST_STRATEGY.md                              |  85 [32m+++++[m
+ docs/THREAT_MODEL.md                               |  87 [32m+++++[m
+ engineering_log.md                                 |  75 [32m++++[m
+ implement.md                                       |  18 [32m+[m
+ ios/App/README.md                                  |   9 [32m+[m
+ ios/FilterExtension/README.md                      |   8 [32m+[m
+ plans.md                                           |  63 [32m+++[m
+ 31 files changed, 3037 insertions(+)

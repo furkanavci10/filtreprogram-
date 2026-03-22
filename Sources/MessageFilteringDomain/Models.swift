@@ -48,6 +48,7 @@ public struct NormalizedMessage: Codable, Hashable, Sendable {
     public let compactText: String
     public let aggressiveText: String
     public let aggressiveCompactText: String
+    public let tokens: [String]
 
     public init(
         rawText: String,
@@ -55,7 +56,8 @@ public struct NormalizedMessage: Codable, Hashable, Sendable {
         normalizedText: String,
         compactText: String,
         aggressiveText: String,
-        aggressiveCompactText: String
+        aggressiveCompactText: String,
+        tokens: [String]
     ) {
         self.rawText = rawText
         self.loweredText = loweredText
@@ -63,6 +65,7 @@ public struct NormalizedMessage: Codable, Hashable, Sendable {
         self.compactText = compactText
         self.aggressiveText = aggressiveText
         self.aggressiveCompactText = aggressiveCompactText
+        self.tokens = tokens
     }
 }
 
@@ -149,33 +152,84 @@ public struct ClassifierConfiguration: Sendable {
         self.aggressivePromotionalFiltering = aggressivePromotionalFiltering
         self.bahisFilteringEnabled = bahisFilteringEnabled
         self.filteringStrength = filteringStrength
-        self.allowlistedSenders = Set(allowlistedSenders.map(Self.normalizeToken))
-        self.whitelistTerms = Set(whitelistTerms.map(Self.normalizeToken))
-        self.denylistedSenders = Set(denylistedSenders.map(Self.normalizeToken))
-        self.blacklistTerms = Set(blacklistTerms.map(Self.normalizeToken))
+        self.allowlistedSenders = Self.buildComparableSet(from: allowlistedSenders)
+        self.whitelistTerms = Self.buildComparableSet(from: whitelistTerms)
+        self.denylistedSenders = Self.buildComparableSet(from: denylistedSenders)
+        self.blacklistTerms = Self.buildComparableSet(from: blacklistTerms)
     }
 
     public func isAllowlisted(sender: String?) -> Bool {
         guard let sender else { return false }
-        return allowlistedSenders.contains(Self.normalizeToken(sender))
+        let comparable = ConfigurationNormalizer.normalize(sender)
+        return allowlistedSenders.contains(comparable.normalized)
+            || allowlistedSenders.contains(comparable.compact)
     }
 
     public func isDenylisted(sender: String?) -> Bool {
         guard let sender else { return false }
-        return denylistedSenders.contains(Self.normalizeToken(sender))
+        let comparable = ConfigurationNormalizer.normalize(sender)
+        return denylistedSenders.contains(comparable.normalized)
+            || denylistedSenders.contains(comparable.compact)
     }
 
     public func matchesWhitelistTerm(_ text: String) -> Bool {
-        let normalized = Self.normalizeToken(text)
-        return whitelistTerms.contains(where: normalized.contains)
+        let comparable = ConfigurationNormalizer.normalize(text)
+        return whitelistTerms.contains { term in
+            comparable.normalized.contains(term) || comparable.compact.contains(term.replacingOccurrences(of: " ", with: ""))
+        }
     }
 
     public func matchesBlacklistTerm(_ text: String) -> Bool {
-        let normalized = Self.normalizeToken(text)
-        return blacklistTerms.contains(where: normalized.contains)
+        let comparable = ConfigurationNormalizer.normalize(text)
+        return blacklistTerms.contains { term in
+            comparable.normalized.contains(term) || comparable.compact.contains(term.replacingOccurrences(of: " ", with: ""))
+        }
     }
 
     private static func normalizeToken(_ value: String) -> String {
-        value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        ConfigurationNormalizer.normalize(value).normalized
+    }
+
+    private static func buildComparableSet(from values: Set<String>) -> Set<String> {
+        Set(values.flatMap { value -> [String] in
+            let comparable = ConfigurationNormalizer.normalize(value)
+            if comparable.compact == comparable.normalized {
+                return [comparable.normalized]
+            }
+            return [comparable.normalized, comparable.compact]
+        })
+    }
+}
+
+private enum ConfigurationNormalizer {
+    private static let scalarReplacements: [Character: Character] = [
+        "\u{131}": "i",
+        "\u{130}": "i"
+    ]
+
+    struct ComparableValue {
+        let normalized: String
+        let compact: String
+    }
+
+    static func normalize(_ value: String) -> ComparableValue {
+        let lowered = value
+            .folding(options: [.diacriticInsensitive, .widthInsensitive], locale: Locale(identifier: "tr_TR"))
+            .lowercased(with: Locale(identifier: "tr_TR"))
+
+        let replaced = String(lowered.map { scalarReplacements[$0] ?? $0 })
+        let punctuationSimplified = replaced.replacingOccurrences(
+            of: "[^a-z0-9]+",
+            with: " ",
+            options: .regularExpression
+        )
+
+        let normalized = punctuationSimplified
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let compact = normalized.replacingOccurrences(of: " ", with: "")
+
+        return ComparableValue(normalized: normalized, compact: compact)
     }
 }

@@ -23,6 +23,9 @@ public struct SMSClassifier: Sendable {
         let category = decisionEngine.decide(from: evaluation)
         let confidenceBand = decisionEngine.confidenceBand(for: category, evaluation: evaluation)
         let explanation = explanationEngine.explanation(for: category, evaluation: evaluation)
+        let normalizedText = evaluation.normalizedMessage.normalizedText.isEmpty
+            ? evaluation.normalizedMessage.loweredText
+            : evaluation.normalizedMessage.normalizedText
 
         return ClassificationResult(
             category: category,
@@ -31,7 +34,7 @@ public struct SMSClassifier: Sendable {
             riskScore: evaluation.riskScore,
             triggeredSignals: evaluation.triggeredSignals,
             explanation: explanation,
-            normalizedText: evaluation.normalizedMessage.normalizedText
+            normalizedText: normalizedText
         )
     }
 }

@@ -21,6 +21,22 @@ enum SpamRiskRules {
                 ], in: context.normalized)
             },
             RuleDefinition(
+                id: "spam.betting_variants",
+                description: "Extended bahis and casino pattern family.",
+                ruleType: .spamRisk,
+                severity: .high,
+                safeWeight: 0,
+                riskWeight: RuleWeights.betting,
+                explanationHint: "Detected extended bahis, casino, or freebet wording."
+            ) { context in
+                guard context.configuration.bahisFilteringEnabled else { return false }
+                return RulePatternMatcher.containsAny([
+                    "banko mac", "oranlar burada", "kupon yap", "vip giris",
+                    "cashout", "join ol", "register simdi", "mac tahmini",
+                    "deneme bonusu", "yatirimsiz bonus", "hizli cekim"
+                ], in: context.normalized)
+            },
+            RuleDefinition(
                 id: "spam.bonus_amplifier",
                 description: "Gambling CTA and bonus amplifier.",
                 ruleType: .spamRisk,
@@ -33,6 +49,23 @@ enum SpamRiskRules {
                     "kayit ol", "hemen gir", "bonus", "cekim", "vip giris",
                     "hemen uye ol", "paneli acildi", "sadece bugun"
                 ], in: context.normalized)
+            },
+            RuleDefinition(
+                id: "spam.link_urgency_combo",
+                description: "Urgency plus suspicious action language common in spam campaigns.",
+                ruleType: .spamRisk,
+                severity: .high,
+                safeWeight: 0,
+                riskWeight: RuleWeights.bettingAmplifier,
+                explanationHint: "Detected suspicious spam CTA and urgency combination."
+            ) { context in
+                let hasCTA = RulePatternMatcher.containsAny([
+                    "tikla", "tiklayin", "girin", "acin", "hemen", "simdi"
+                ], in: context.normalized)
+                let hasSpamish = RulePatternMatcher.containsAny([
+                    "bonus", "freebet", "hediye", "odul", "kampanya"
+                ], in: context.normalized)
+                return hasCTA && hasSpamish
             },
             RuleDefinition(
                 id: "spam.urgency",

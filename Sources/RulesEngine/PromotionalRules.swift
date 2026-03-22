@@ -17,6 +17,20 @@ enum PromotionalRules {
                     "kampanya", "indirim", "firsat", "hemen kazan",
                     "ozel teklif", "ucretsiz kargo", "flash sale", "yeni uyelere"
                 ], in: context.normalized)
+            },
+            RuleDefinition(
+                id: "promo.retail_language",
+                description: "Retail and campaign-style promotional phrasing.",
+                ruleType: .promotional,
+                severity: .low,
+                safeWeight: 0,
+                riskWeight: RuleWeights.promo,
+                explanationHint: "Detected retail or campaign-style promotional wording."
+            ) { context in
+                RulePatternMatcher.containsAny([
+                    "kampanya basladi", "sizi bekliyor", "hediye tanimlandi",
+                    "ozel firsat", "bu aya ozel", "firsati kacirma", "hemen kazan"
+                ], in: context.normalized)
             }
         ]
     }
